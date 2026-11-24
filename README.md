@@ -221,10 +221,22 @@ npx expo run:android        # native development build
 ```bash
 npx expo lint
 npx tsc --noEmit
-npm test
+tests/db/run.sh   # RLS suite, needs a local PostgreSQL
 ```
 
 > Only public client keys belong in `.env.local`. Never commit service-role keys or other secrets.
+
+### Backend setup (once per Supabase project)
+
+1. **Apply the migrations** in `supabase/migrations/` in order (Supabase CLI `npx supabase db push`, or paste each file into the SQL editor). They are incremental on top of the first three.
+2. **Extensions:** enable `pg_cron` (due-soon / overdue reminders every 15 min) and `pg_net` (push delivery) under Database → Extensions, then re-run the last migration if they were off. Everything else works without them.
+3. **Auth → URL configuration:** add `clientdesk://auth/callback` (and your dev URL, e.g. `exp://…/--/auth/callback`) to the redirect allow-list. Used by email confirmation, password reset and Google.
+4. **Auth → Providers → Google:** enable it with your Google OAuth client ID and secret.
+5. **Invitation email (optional):** `npx supabase functions deploy send-invitation`, then set the secrets `RESEND_API_KEY` and `INVITE_FROM_EMAIL`. Without it, invitations still appear in-app for existing accounts and can be shared as a link.
+6. **Push (optional):** `npx eas-cli@latest init` to get an EAS project id; push needs a development build (`eas build --profile development`), not Expo Go.
+
+**Database tests:** `PGPORT=5432 tests/db/run.sh` runs the RLS suite against any local PostgreSQL (see `tests/db/README.md`).
+
 
 ---
 
