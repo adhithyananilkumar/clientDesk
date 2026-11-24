@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Gutter, Radius, Spacing, type ThemeColor } from '@/constants/theme';
@@ -31,7 +31,7 @@ export function Sheet({ visible, onClose, title, subtitle, children, footer }: S
 
   useEffect(() => {
     if (visible) return;
-    const timer = setTimeout(() => setMounted(false), 220);
+    const timer = setTimeout(() => setMounted(false), 260);
     return () => clearTimeout(timer);
   }, [visible]);
 
@@ -48,8 +48,8 @@ export function Sheet({ visible, onClose, title, subtitle, children, footer }: S
             />
           </Animated.View>
           <Animated.View
-            entering={SlideInDown.springify().damping(22).stiffness(220)}
-            exiting={SlideOutDown.duration(200)}
+            entering={SlideInDown.duration(280).easing(Easing.out(Easing.cubic))}
+            exiting={SlideOutDown.duration(220).easing(Easing.in(Easing.cubic))}
             style={[styles.panel, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.three }]}>
             <View style={[styles.grabber, { backgroundColor: theme.borderStrong }]} />
             {title ? (

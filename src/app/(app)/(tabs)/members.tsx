@@ -2,49 +2,80 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { Avatar, Button, EmptyState, IconButton, ListGroup, ListRow, Page, Pill, SearchField, SegmentedControl, ThemedText } from '@/components/ui';
+import { Avatar, Button, Chip, EmptyState, IconButton, ListGroup, ListRow, Page, Pill, SearchField, SegmentedControl, ThemedText } from '@/components/ui';
 import { ROLE } from '@/constants/tickets';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/features/auth';
 import { useInvitations, useMembers, useRevokeInvitation, useWorkspace } from '@/features/workspace';
 import { can } from '@/features/workspace/permissions';
+import { TopBarActions } from '@/features/workspace/components/top-bar';
+import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
 import { toast } from '@/stores/toast-store';
 import type { Role } from '@/types/models';
 import { displayName, errorMessage, shortDate } from '@/utils/format';
 
 const ORDER: Record<Role, number> = { owner: 0, admin: 1, member: 2 };
 
+type RoleFilter = 'all' | Role;
+
 export default function Members() {
+  const theme = useTheme();
   const { user } = useAuth();
-  const { workspace, workspaceId, role } = useWorkspace();
+  const { workspaceId, role } = useWorkspace();
   const members = useMembers(workspaceId);
   const manage = can.inviteMembers(role);
   const invitations = useInvitations(workspaceId, manage);
   const revoke = useRevokeInvitation(workspaceId);
   const [tab, setTab] = useState<'members' | 'invites'>('members');
   const [q, setQ] = useState('');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [now] = useState(() => Date.now());
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return (members.data ?? [])
+      .filter((m) => roleFilter === 'all' || m.role === roleFilter)
       .filter((m) => !needle || displayName(m.profile).toLowerCase().includes(needle) || (m.profile?.email ?? '').toLowerCase().includes(needle))
       .sort((a, b) => ORDER[a.role] - ORDER[b.role] || displayName(a.profile).localeCompare(displayName(b.profile)));
-  }, [members.data, q]);
+  }, [members.data, q, roleFilter]);
 
   const invites = invitations.data ?? [];
+  const all = members.data ?? [];
+  const count = (r: Role) => all.filter((m) => m.role === r).length;
+  const pending = invites.filter((i) => new Date(i.expires_at).getTime() >= now).length;
+  const stats: { label: string; value: number }[] = [
+    { label: 'People', value: all.length },
+    { label: 'Admins', value: count('owner') + count('admin') },
+    { label: 'Members', value: count('member') },
+    ...(manage ? [{ label: 'Pending', value: pending }] : []),
+  ];
 
   return (
     <Page
-      back
+      leading={<WorkspaceSwitcher />}
       title="Members"
-      subtitle={`${members.data?.length ?? 0} people in ${workspace?.name ?? 'this workspace'}`}
-      actions={manage ? <IconButton icon="person-add" label="Invite member" onPress={() => router.push('/members/invite')} filled /> : null}
+      actions={
+        <TopBarActions
+          extra={manage ? <IconButton icon="person-add" label="Invite member" onPress={() => router.push('/members/invite')} filled /> : null}
+        />
+      }
       refreshing={members.isRefetching}
       onRefresh={() => {
         members.refetch();
         invitations.refetch();
       }}>
+      <View style={styles.stats}>
+        {stats.map((st) => (
+          <View key={st.label} style={[styles.stat, { backgroundColor: theme.backgroundElement }]}>
+            <ThemedText style={styles.statValue}>{st.value}</ThemedText>
+            <ThemedText type="caption" themeColor="textSecondary">
+              {st.label}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
+
       {manage ? (
         <View style={styles.tabs}>
           <SegmentedControl
@@ -63,6 +94,11 @@ export default function Members() {
           <View style={styles.search}>
             <SearchField value={q} onChangeText={setQ} placeholder="Search by name or email" />
           </View>
+          <View style={styles.chips}>
+            {(['all', 'owner', 'admin', 'member'] as const).map((r) => (
+              <Chip key={r} label={r === 'all' ? 'Everyone' : `${ROLE[r].label}s`} selected={roleFilter === r} onPress={() => setRoleFilter(r)} />
+            ))}
+          </View>
           <ListGroup>
             {list.map((m, i) => (
               <ListRow
@@ -77,6 +113,7 @@ export default function Members() {
             ))}
           </ListGroup>
           {!list.length && !members.isLoading ? <EmptyState icon="search" title="No one matches" /> : null}
+          {manage ? <Button title="Invite member" icon="person-add" variant="secondary" onPress={() => router.push('/members/invite')} style={styles.invite} /> : null}
         </>
       ) : invites.length ? (
         <ListGroup>
@@ -128,6 +165,11 @@ export default function Members() {
 }
 
 const styles = StyleSheet.create({
+  stats: { flexDirection: 'row', gap: Spacing.two, marginBottom: Spacing.three },
+  stat: { flex: 1, borderRadius: Radius.md, paddingVertical: 12, alignItems: 'center', gap: 2 },
+  statValue: { fontSize: 22, lineHeight: 26, fontWeight: '800' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, marginBottom: Spacing.three },
+  invite: { marginTop: Spacing.four },
   tabs: { marginBottom: Spacing.three },
   search: { marginBottom: Spacing.three },
   note: { textAlign: 'center', marginTop: Spacing.four },

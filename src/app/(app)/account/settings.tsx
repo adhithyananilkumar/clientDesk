@@ -35,6 +35,11 @@ export default function AccountSettings() {
 
   return (
     <Page back title="Account settings" subtitle="These apply to you in every workspace.">
+      <ListGroup>
+        <ListRow icon="bell" title="Notifications" subtitle="Push alerts and what you hear about" onPress={() => router.push('/account/notifications')} />
+        <ListRow icon="shield-lock" title="Security" subtitle="Password and sessions" onPress={() => router.push('/account/security')} last />
+      </ListGroup>
+
       <SectionHeader title="Email address" />
       <FormField
         label="Email"

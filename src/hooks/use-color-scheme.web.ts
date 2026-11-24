@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
+import { useThemeStore } from '@/stores/theme-store';
+
 const noop = () => () => {};
 
 /**
@@ -9,6 +11,8 @@ const noop = () => () => {};
  */
 export function useColorScheme() {
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
-  const colorScheme = useRNColorScheme();
-  return hydrated ? colorScheme : 'light';
+  const system = useRNColorScheme();
+  const mode = useThemeStore((s) => s.mode);
+  if (!hydrated) return 'light';
+  return mode === 'system' ? system : mode;
 }

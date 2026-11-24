@@ -29,7 +29,7 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider value={appearance === 'dark' ? DARK : LIGHT}>
-      <StatusBar style="auto" />
+      <StatusBar style={appearance === 'dark' ? 'light' : 'dark'} />
       {children}
     </ThemeProvider>
   );

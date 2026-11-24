@@ -20,13 +20,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 }));
 
 type UiState = {
-  sidebarOpen: boolean;
-  openSidebar: () => void;
-  closeSidebar: () => void;
+  profileOpen: boolean;
+  openProfile: () => void;
+  closeProfile: () => void;
 };
 
 export const useUiStore = create<UiState>((set) => ({
-  sidebarOpen: false,
-  openSidebar: () => set({ sidebarOpen: true }),
-  closeSidebar: () => set({ sidebarOpen: false }),
+  profileOpen: false,
+  openProfile: () => set({ profileOpen: true }),
+  closeProfile: () => set({ profileOpen: false }),
 }));

@@ -70,7 +70,7 @@ function MemberView() {
   const { workspace, role } = useWorkspace();
   const leave = useLeaveWorkspace();
   return (
-    <Page back title="Workspace" subtitle={workspace?.name}>
+    <Page title="Workspace" subtitle={workspace?.name}>
       <ThemedText themeColor="textSecondary" style={styles.regular}>
         Only owners and admins can change workspace settings.
       </ThemedText>
@@ -177,7 +177,7 @@ function Settings({ workspace }: { workspace: Workspace }) {
   const lockNote = owner ? undefined : 'Only the owner can change this';
 
   return (
-    <Page back title="Workspace settings" subtitle={workspace.name}>
+    <Page title="Workspace settings" subtitle={workspace.name}>
       {/* General */}
       <SectionHeader title="General" />
       <View style={styles.logoRow}>

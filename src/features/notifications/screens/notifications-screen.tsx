@@ -74,13 +74,16 @@ export function NotificationsScreen() {
   const header = (
     <View style={styles.header}>
       <View style={styles.titleRow}>
+        <IconButton icon="arrow-left" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} filled />
         <View style={styles.flex}>
           <ThemedText style={styles.title} accessibilityRole="header">
             Notifications
           </ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary">
-            {unread ? `${unread} unread` : 'You’re all caught up'}
-          </ThemedText>
+          {unread ? (
+            <ThemedText type="caption" themeColor="textSecondary">
+              {unread} unread
+            </ThemedText>
+          ) : null}
         </View>
         {unread ? (
           <Button
@@ -92,7 +95,6 @@ export function NotificationsScreen() {
             onPress={() => markAll.mutate(undefined, { onError: (e) => toast.error(errorMessage(e)) })}
           />
         ) : null}
-        <IconButton icon="gear" label="Notification preferences" onPress={() => router.push('/account/notifications')} filled />
       </View>
       {invitations.data?.length ? (
         <View style={styles.invites}>
@@ -108,13 +110,14 @@ export function NotificationsScreen() {
     <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       <FlatList<Row>
         style={styles.list}
+        contentContainerStyle={styles.grow}
         data={rows}
         keyExtractor={(row) => (row.type === 'header' ? `h-${row.label}` : row.item.id)}
         ListHeaderComponent={header}
         renderItem={({ item: row }) =>
           row.type === 'header' ? (
             <ThemedText type="caption" themeColor="textTertiary" style={styles.bucket}>
-              {row.label.toUpperCase()}
+              {row.label}
             </ThemedText>
           ) : (
             <NotificationRow n={row.item} onPress={() => open(row.item)} />
@@ -128,7 +131,9 @@ export function NotificationsScreen() {
               ))}
             </View>
           ) : (
-            <EmptyState icon="bell" title="No notifications" message="Assignments, replies and status changes on your tickets show up here." />
+            <View style={styles.center}>
+              <EmptyState icon="bell" title="Nothing yet" />
+            </View>
           )
         }
         onEndReached={() => list.hasNextPage && !list.isFetchingNextPage && list.fetchNextPage()}
@@ -189,9 +194,11 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Gutter, paddingTop: Spacing.two, gap: Spacing.three, paddingBottom: Spacing.two },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   flex: { flex: 1 },
-  title: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
+  grow: { flexGrow: 1 },
+  center: { flex: 1, justifyContent: 'center', paddingBottom: 96 },
+  title: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.3 },
   invites: { gap: Spacing.three },
-  bucket: { paddingHorizontal: Gutter, paddingTop: Spacing.four, paddingBottom: Spacing.two, letterSpacing: 1 },
+  bucket: { paddingHorizontal: Gutter, paddingTop: Spacing.four, paddingBottom: Spacing.two, fontWeight: '600' },
   row: { flexDirection: 'row', gap: 12, paddingHorizontal: Gutter, paddingVertical: 12, alignItems: 'flex-start' },
   iconOnly: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   kind: { position: 'absolute', right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },

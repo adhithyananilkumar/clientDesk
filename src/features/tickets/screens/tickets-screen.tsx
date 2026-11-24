@@ -17,9 +17,10 @@ import {
 import { STATUS } from '@/constants/tickets';
 import { Gutter, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useCategories, useMembers, useWorkspace } from '@/features/workspace';
+import { TopBarActions } from '@/features/workspace/components/top-bar';
+import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
 import { isAdmin } from '@/features/workspace/permissions';
 import { useTheme } from '@/hooks/use-theme';
-import { useUiStore } from '@/stores/workspace-store';
 import type { Ticket } from '@/types/models';
 
 import { activeFilterCount, DEFAULT_FILTERS, useTickets, type TicketFilters, type TicketScope, type TicketSort } from '../api';
@@ -52,7 +53,6 @@ export function TicketsScreen() {
   const { workspace, workspaceId, role } = useWorkspace();
   const members = useMembers(workspaceId).data ?? [];
   const categories = useCategories(workspaceId).data ?? [];
-  const openSidebar = useUiStore((s) => s.openSidebar);
 
   const [filters, setFilters] = useState<TicketFilters>(DEFAULT_FILTERS);
   const [search, setSearch] = useState('');
@@ -98,16 +98,9 @@ export function TicketsScreen() {
   const header = (
     <View style={styles.header}>
       <View style={styles.titleRow}>
-        <IconButton icon="three-bars" label="Open workspace menu" onPress={openSidebar} filled />
-        <View style={styles.flex}>
-          <ThemedText style={styles.title} accessibilityRole="header">
-            Tickets
-          </ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
-            {workspace?.name}
-          </ThemedText>
-        </View>
-        <IconButton icon="plus" label="Create ticket" onPress={() => router.push('/ticket/new')} filled />
+        <WorkspaceSwitcher />
+        <View style={styles.flex} />
+        <TopBarActions extra={<IconButton icon="plus" label="Create ticket" onPress={() => router.push('/ticket/new')} filled />} />
       </View>
 
       <SearchField value={search} onChangeText={setSearch} placeholder="Search by number, title, person…" />

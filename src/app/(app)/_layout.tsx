@@ -44,10 +44,9 @@ export default function AppLayout() {
         <Stack.Screen name="ticket/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="ticket/[id]" />
         <Stack.Screen name="ticket/edit/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="members" />
         <Stack.Screen name="members/[userId]" />
         <Stack.Screen name="members/invite" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="workspace/settings" />
+        <Stack.Screen name="notifications" />
         <Stack.Screen name="workspace/categories" />
         <Stack.Screen name="workspaces" />
       </Stack.Protected>
