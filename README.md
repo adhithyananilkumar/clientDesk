@@ -207,9 +207,9 @@ Every operation carries a stable ID and the server handles duplicates safely, so
 npm install
 
 # 2. Configure the environment
-cp .env.example .env
+cp .env.example .env.local
 #    EXPO_PUBLIC_SUPABASE_URL=
-#    EXPO_PUBLIC_SUPABASE_ANON_KEY=
+#    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 
 # 3. Run
 npx expo start              # development server
@@ -224,7 +224,7 @@ npx tsc --noEmit
 npm test
 ```
 
-> Only public client keys belong in `.env`. Never commit service-role keys or other secrets.
+> Only public client keys belong in `.env.local`. Never commit service-role keys or other secrets.
 
 ---
 

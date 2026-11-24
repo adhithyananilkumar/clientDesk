@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { LogoMark, Wordmark } from '@/components/brand';
 import { LoadingScreen } from '@/components/feedback';
-import { Screen, ThemedText } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Button, Screen, ThemedText } from '@/components/ui';
+import { Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth';
 
 const PREVIEW_MS = 3500;
 
 export function HomeScreen() {
-  const theme = useTheme();
+  const { user, signOut } = useAuth();
   const [previewing, setPreviewing] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!previewing) return;
@@ -19,29 +20,32 @@ export function HomeScreen() {
     return () => clearTimeout(timer);
   }, [previewing]);
 
+  const name = (user?.user_metadata?.full_name as string | undefined) || user?.email || 'there';
+
   return (
     <Screen>
       <View style={styles.hero}>
         <LogoMark size={96} />
         <Wordmark size={40} />
-        <ThemedText type="small" themeColor="textSecondary" style={styles.tagline}>
-          Every issue tracked. Every task assigned. Every resolution recorded.
+        <ThemedText themeColor="textSecondary" style={styles.greeting}>
+          Signed in as {name}
         </ThemedText>
       </View>
 
-      {__DEV__ ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setPreviewing(true)}
-          style={({ pressed }) => [
-            styles.devButton,
-            { borderColor: theme.border, opacity: pressed ? 0.6 : 1 },
-          ]}>
-          <ThemedText type="caption" themeColor="textSecondary">
-            Preview loader (dev only)
-          </ThemedText>
-        </Pressable>
-      ) : null}
+      <View style={styles.actions}>
+        {__DEV__ ? (
+          <Button title="Preview loader" variant="ghost" onPress={() => setPreviewing(true)} />
+        ) : null}
+        <Button
+          title="Sign out"
+          variant="ghost"
+          loading={signingOut}
+          onPress={async () => {
+            setSigningOut(true);
+            await signOut();
+          }}
+        />
+      </View>
 
       {previewing ? <LoadingScreen message="Loading preview" /> : null}
     </Screen>
@@ -49,22 +53,7 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.three,
-  },
-  tagline: {
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  devButton: {
-    alignSelf: 'center',
-    marginBottom: Spacing.four,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.xl,
-  },
+  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.three },
+  greeting: { textAlign: 'center', maxWidth: 280 },
+  actions: { gap: Spacing.two, paddingBottom: Spacing.four },
 });
