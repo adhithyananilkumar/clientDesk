@@ -2,10 +2,16 @@ import '@/global.css';
 
 import { Stack } from 'expo-router';
 
+import { ToastHost } from '@/components/feedback';
 import { AppLauncher } from '@/components/launch';
 import { useAuth } from '@/features/auth';
+import { configureNotificationHandler } from '@/features/notifications/push';
 import { useTheme } from '@/hooks/use-theme';
 import { AppProviders } from '@/providers';
+import { initMonitoring, wrapRoot } from '@/services/monitoring';
+
+initMonitoring();
+configureNotificationHandler();
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
@@ -33,17 +39,23 @@ function RootNavigator() {
           <Stack.Protected guard={!signedIn} redirectTo="/">
             <Stack.Screen name="(auth)" />
           </Stack.Protected>
+          {/* Deep links that work in either state. */}
+          <Stack.Screen name="auth/callback" />
+          <Stack.Screen name="invite" />
           <Stack.Screen name="+not-found" />
         </Stack>
       )}
+      <ToastHost />
     </AppLauncher>
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <AppProviders>
       <RootNavigator />
     </AppProviders>
   );
 }
+
+export default wrapRoot(RootLayout);

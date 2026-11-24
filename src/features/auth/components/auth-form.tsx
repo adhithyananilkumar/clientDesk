@@ -1,9 +1,12 @@
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { Button, DangerColor, TextField, ThemedText, type TextFieldRef } from '@/components/ui';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { fieldErrors } from '@/utils/form';
 import { signInSchema, signUpSchema } from '@/validation';
 
@@ -52,7 +55,10 @@ type AuthFormProps = {
 
 /** One form for both log in and create account. Email and password carry over when switching. */
 export function AuthForm({ mode, onModeChange }: AuthFormProps) {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithGoogle, resendConfirmation } = useAuth();
+  const theme = useTheme();
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [resent, setResent] = useState(false);
   const emailRef = useRef<TextFieldRef>(null);
   const passwordRef = useRef<TextFieldRef>(null);
   const confirmRef = useRef<TextFieldRef>(null);
@@ -113,6 +119,16 @@ export function AuthForm({ mode, onModeChange }: AuthFormProps) {
             We sent a confirmation link to {confirmationSentTo}. Open it on this device, then log in.
           </ThemedText>
         </View>
+        <Button
+          title={resent ? 'Email sent again' : 'Resend email'}
+          variant="ghost"
+          disabled={resent}
+          style={styles.resend}
+          onPress={async () => {
+            const { error } = await resendConfirmation(confirmationSentTo);
+            if (!error) setResent(true);
+          }}
+        />
         <Button
           title="Back to log in"
           variant="secondary"
@@ -215,8 +231,50 @@ export function AuthForm({ mode, onModeChange }: AuthFormProps) {
           </Animated.View>
         ) : null}
 
+        {!signingUp ? (
+          <Animated.View entering={grow} exiting={shrink} layout={layout} style={styles.forgotRow}>
+            <Pressable
+              accessibilityRole="link"
+              hitSlop={8}
+              onPress={() => router.push({ pathname: '/forgot-password', params: { email: values.email } })}>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.link}>
+                Forgot password?
+              </ThemedText>
+            </Pressable>
+          </Animated.View>
+        ) : null}
+
         <Animated.View layout={layout}>
           <Button title={copy.action} onPress={submit} loading={submitting} />
+        </Animated.View>
+
+        <Animated.View layout={layout} style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+          <ThemedText type="caption" themeColor="textSecondary">
+            OR
+          </ThemedText>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+        </Animated.View>
+
+        <Animated.View layout={layout}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+            disabled={googleBusy}
+            onPress={async () => {
+              setFormError(null);
+              setGoogleBusy(true);
+              const { error } = await signInWithGoogle();
+              setGoogleBusy(false);
+              if (error) setFormError(error);
+            }}
+            style={({ pressed }) => [
+              styles.google,
+              { borderColor: theme.borderStrong, opacity: googleBusy ? 0.5 : pressed ? 0.85 : 1 },
+            ]}>
+            <AntDesign name="google" size={18} color={theme.text} />
+            <ThemedText style={styles.googleText}>{googleBusy ? 'Opening Google…' : 'Continue with Google'}</ThemedText>
+          </Pressable>
         </Animated.View>
       </View>
 
@@ -246,6 +304,20 @@ const styles = StyleSheet.create({
   form: { gap: Spacing.four - Spacing.one },
   error: { color: DangerColor },
   link: { fontWeight: '700' },
+  resend: { marginBottom: Spacing.three },
+  forgotRow: { alignItems: 'flex-end', marginTop: -Spacing.two },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  google: {
+    minHeight: 56,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two + 2,
+  },
+  googleText: { fontSize: 17, lineHeight: 22, fontWeight: '600' },
   footer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
