@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#0A0A0A",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.clientdesk.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +19,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.clientdesk.app"
     },
     "web": {
       "output": "server",
@@ -37,6 +39,22 @@
             "backgroundColor": "#0A0A0A",
             "image": "./assets/images/splash-icon.png"
           }
+        }
+      ],
+      "expo-web-browser",
+      "@sentry/react-native",
+      [
+        "expo-notifications",
+        {
+          "color": "#0A0A0A",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ClientDesk uses your photos so you can attach screenshots to tickets and set a profile picture.",
+          "cameraPermission": "ClientDesk uses the camera so you can photograph an issue and attach it to a ticket."
         }
       ]
     ],

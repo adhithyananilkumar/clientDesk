@@ -19,6 +19,8 @@ export const supabase = createClient(env.supabaseUrl, env.supabasePublishableKey
     persistSession: true,
     // There is no browser URL to read a session from in a native app.
     detectSessionInUrl: false,
+    // PKCE: email links and OAuth return a one-time code exchanged on this device.
+    flowType: 'pkce',
   },
 });
 

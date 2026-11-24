@@ -22,4 +22,6 @@ export const env = {
     'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
     process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   ),
+  /** Optional: crash reporting. */
+  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || undefined,
 } as const;
