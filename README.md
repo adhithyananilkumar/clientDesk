@@ -232,9 +232,15 @@ npm test
 
 ```text
 src/
-├── app/            Screens and navigation (Expo Router)
-├── components/     Shared UI: ui, forms, layout
-├── features/       auth · workspace · tickets · comments · team · notifications · settings
+├── app/            Routes only (Expo Router); thin files that compose features
+│   └── (app)/      Signed-in area
+├── components/
+│   ├── brand/      Logo mark (animatable vector) and wordmark
+│   ├── feedback/   Loader and loading screen
+│   ├── launch/     Animated app launcher
+│   ├── ui/         Themed text, views and screen container
+│   └── forms/ layout/
+├── features/       auth · workspace · tickets · comments · team · notifications · settings · dashboard
 ├── services/       API and platform services
 ├── database/       SQLite schema, migrations, repositories
 ├── sync/           Offline outbox and sync engine
@@ -250,6 +256,8 @@ assets/
 supabase/
 ├── migrations/     Database schema and RLS policies
 └── functions/      Edge Functions
+
+tests/              Unit, component and end-to-end tests
 ```
 
 ---
