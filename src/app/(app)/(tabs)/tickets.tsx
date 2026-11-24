@@ -1,0 +1,3 @@
+import { TicketsScreen } from '@/features/tickets/screens/tickets-screen';
+
+export default TicketsScreen;
