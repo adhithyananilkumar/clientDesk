@@ -44,6 +44,8 @@ export const Radius = {
   md: 12,
   lg: 16,
   xl: 24,
+  /** Fully rounded ends for buttons and fields. */
+  pill: 999,
 } as const;
 
 export const MaxContentWidth = 800;

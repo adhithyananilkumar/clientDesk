@@ -6,29 +6,37 @@ import { useTheme } from '@/hooks/use-theme';
 
 import { ThemedText } from './themed-text';
 
+export const DangerColor = '#E5484D';
+
 export type TextFieldRef = ComponentRef<typeof TextInput>;
 
-export type TextFieldProps = TextInputProps & {
+export type TextFieldProps = Omit<TextInputProps, 'placeholder'> & {
+  /** Shown inside the empty field, and read out by screen readers. */
   label: string;
   error?: string;
   ref?: Ref<TextFieldRef>;
 };
 
-/** Labelled text input with inline error, themed for light and dark. */
+const INSET = Spacing.four - Spacing.one;
+
+/**
+ * Pill-shaped field. The label sits inside the empty field, exactly where the
+ * text goes, and simply gives way once you start typing: no floating, no
+ * shrinking, no separate hint. An ink outline shows on focus, red on error.
+ */
 export function TextField({ label, error, style, onFocus, onBlur, ref, ...rest }: TextFieldProps) {
   const theme = useTheme();
   const [focused, setFocused] = useState(false);
 
   return (
     <View style={styles.wrapper}>
-      <ThemedText type="small" themeColor="textSecondary">
-        {label}
-      </ThemedText>
       <TextInput
         ref={ref}
         accessibilityLabel={label}
-        placeholderTextColor={theme.textSecondary}
+        placeholder={label}
+        placeholderTextColor={error ? DangerColor : theme.textSecondary}
         selectionColor={theme.text}
+        cursorColor={theme.text}
         onFocus={(event) => {
           setFocused(true);
           onFocus?.(event);
@@ -42,7 +50,7 @@ export function TextField({ label, error, style, onFocus, onBlur, ref, ...rest }
           {
             color: theme.text,
             backgroundColor: theme.backgroundElement,
-            borderColor: error ? '#E5484D' : focused ? theme.text : theme.border,
+            borderColor: error ? DangerColor : focused ? theme.text : 'transparent',
           },
           style,
         ]}
@@ -58,13 +66,14 @@ export function TextField({ label, error, style, onFocus, onBlur, ref, ...rest }
 }
 
 const styles = StyleSheet.create({
-  wrapper: { gap: Spacing.one + Spacing.half },
+  wrapper: { gap: Spacing.two },
   input: {
-    minHeight: 52,
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
-    fontSize: 16,
+    height: 60,
+    borderWidth: 2,
+    borderRadius: Radius.pill,
+    paddingHorizontal: INSET,
+    paddingVertical: 0,
+    fontSize: 17,
   },
-  error: { color: '#E5484D' },
+  error: { color: DangerColor, paddingHorizontal: INSET },
 });

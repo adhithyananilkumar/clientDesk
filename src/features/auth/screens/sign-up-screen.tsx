@@ -1,9 +1,8 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import { Button, TextField, ThemedText, type TextFieldRef } from '@/components/ui';
-import { Spacing } from '@/constants/theme';
+import { Button, DangerColor, TextField, ThemedText, type TextFieldRef } from '@/components/ui';
 import { fieldErrors } from '@/utils/form';
 import { signUpSchema } from '@/validation';
 
@@ -42,24 +41,36 @@ export function SignUpScreen() {
     setSubmitting(false);
     if (error) setFormError(error);
     else if (needsConfirmation) setConfirmationSentTo(parsed.data.email);
-    // Otherwise a session exists and the auth guard moves the user into the app.
+    // Otherwise a session exists and the auth guard moves the user to the greet screen.
   }
 
   if (confirmationSentTo) {
     return (
       <AuthLayout title="Check your inbox" subtitle={`We sent a confirmation link to ${confirmationSentTo}.`}>
         <ThemedText themeColor="textSecondary">
-          Open the link on this device, then sign in to finish setting up your account.
+          Open the link on this device, then log in to finish setting up your account.
         </ThemedText>
-        <Link href="/sign-in" replace asChild>
-          <Button title="Back to sign in" onPress={() => {}} variant="ghost" />
-        </Link>
+        <Button title="Back to log in" variant="secondary" onPress={() => router.replace('/sign-in')} />
       </AuthLayout>
     );
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Set up ClientDesk for you and your team.">
+    <AuthLayout
+      title="Create your account"
+      subtitle="Set up ClientDesk for you and your team."
+      footer={
+        <>
+          <ThemedText type="small" themeColor="textSecondary">
+            Already have an account?
+          </ThemedText>
+          <Link href="/sign-in" replace>
+            <ThemedText type="small" style={styles.link}>
+              Log in
+            </ThemedText>
+          </Link>
+        </>
+      }>
       <TextField
         label="Full name"
         value={values.fullName}
@@ -115,19 +126,11 @@ export function SignUpScreen() {
         </ThemedText>
       ) : null}
       <Button title="Create account" onPress={submit} loading={submitting} />
-      <View style={styles.footer}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Already have an account?
-        </ThemedText>
-        <Link href="/sign-in" replace>
-          <ThemedText type="small">Sign in</ThemedText>
-        </Link>
-      </View>
     </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  error: { color: '#E5484D' },
-  footer: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.two },
+  error: { color: DangerColor },
+  link: { fontWeight: '700' },
 });
