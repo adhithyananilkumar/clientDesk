@@ -52,6 +52,7 @@ export default function ProfileTab() {
       <SectionHeader title="Account" />
       <ListGroup>
         <ListRow icon="person" title="My profile" subtitle="Name and photo" onPress={() => router.push('/account/profile')} />
+        <ListRow icon="organization" title="My workspaces" subtitle={`${memberships.length} workspace${memberships.length === 1 ? '' : 's'}, owned and joined`} onPress={() => router.push('/workspaces')} />
         <ListRow icon="mail" title="Account settings" subtitle="Email address and workspaces" onPress={() => router.push('/account/settings')} />
         <ListRow icon="bell" title="Notification preferences" subtitle="Choose what you hear about" onPress={() => router.push('/account/notifications')} />
         <ListRow icon="shield-lock" title="Security" subtitle="Password and sessions" onPress={() => router.push('/account/security')} last />

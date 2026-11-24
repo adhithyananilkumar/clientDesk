@@ -2,11 +2,13 @@ import type { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
-import { clearQueryCache } from '@/services/query-client';
+import { clearQueryCache, setAuthFailureHandler } from '@/services/query-client';
 import { kv, outboxStore } from '@/services/local-db';
 import { supabase } from '@/services/supabase';
+import { toast } from '@/stores/toast-store';
+import { useWorkspaceStore } from '@/stores/workspace-store';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -34,6 +36,28 @@ export function authRedirectUrl() {
 }
 
 const handledCodes = new Set<string>();
+
+/** True while the user is signing out on purpose (no "session expired" message). */
+let manualSignOut = false;
+
+/** Treat a token that expires within 30 s as already expired. */
+function isExpired(session: Session) {
+  return !!session.expires_at && session.expires_at * 1000 < Date.now() + 30_000;
+}
+
+/** Nothing from the previous account stays on the device. */
+function clearLocalData() {
+  clearQueryCache();
+  outboxStore.clear();
+  kv.removePrefix('draft:');
+  kv.remove('current-workspace');
+  useWorkspaceStore.setState({ currentId: null });
+}
+
+/** Session can't be renewed: sign out locally (the listener shows the message). */
+async function expireSession() {
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+}
 
 /**
  * Finish sign-in from a returning URL: a PKCE `code` (OAuth, email confirm,
@@ -72,20 +96,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth
       .getSession()
-      .then(({ data }) => {
-        if (active) setSession(data.session);
+      .then(async ({ data }) => {
+        let current = data.session;
+        // A stored session whose access token has lapsed must refresh now, or the user is signed out.
+        if (current && isExpired(current)) {
+          const refreshed = await supabase.auth.refreshSession();
+          current = refreshed.data.session;
+          if (!current) await expireSession();
+        }
+        if (active) setSession(current);
       })
       .finally(() => {
         if (active) setIsLoading(false);
       });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
+      if (event === 'SIGNED_OUT') {
+        // Covers expiry and revocation (refresh token rejected) as well as normal sign-out.
+        clearLocalData();
+        if (!manualSignOut) toast.error('Your session expired. Please sign in again.');
+        manualSignOut = false;
+      }
+    });
+
+    // Any request rejected for an invalid/expired token: try one refresh, else sign out.
+    setAuthFailureHandler(async () => {
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      if (!refreshed.session) await expireSession();
+    });
+
+    // Coming back to the app after a long time: check before showing stale screens.
+    const appState = AppState.addEventListener('change', async (state) => {
+      if (state !== 'active') return;
+      const { data: s } = await supabase.auth.getSession();
+      if (s.session && isExpired(s.session)) {
+        const refreshed = await supabase.auth.refreshSession();
+        if (!refreshed.data.session) await expireSession();
+      }
     });
 
     return () => {
       active = false;
       data.subscription.unsubscribe();
+      appState.remove();
+      setAuthFailureHandler(null);
     };
   }, []);
 
@@ -143,11 +198,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token) {
       await supabase.from('push_tokens').delete().eq('token', token).then(undefined, () => undefined);
     }
+    manualSignOut = true;
     await supabase.auth.signOut({ scope: options?.everywhere ? 'global' : 'local' });
-    clearQueryCache();
-    outboxStore.clear();
-    kv.removePrefix('draft:');
-    kv.remove('current-workspace');
+    clearLocalData();
   }, []);
 
   const value = useMemo<AuthContextValue>(

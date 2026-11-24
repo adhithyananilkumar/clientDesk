@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Avatar, Button, Card, EmptyState, Icon, IconButton, Page, SectionHeader, Skeleton, ThemedText, type IconName } from '@/components/ui';
+import { ROLE } from '@/constants/tickets';
 import { Radius, Spacing, type ThemeColor } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
 import { useUnreadCount } from '@/features/notifications/api';
@@ -21,7 +22,7 @@ import { displayName, firstName, greeting, ticketKey, timeAgo } from '@/utils/fo
 export function HomeScreen() {
   const theme = useTheme();
   const { user } = useAuth();
-  const { workspace, workspaceId, role } = useWorkspace();
+  const { workspace, workspaceId, role, memberships } = useWorkspace();
   const profile = useMyProfile().data;
   const stats = useTicketStats(workspaceId);
   const updated = useRecentTickets(workspaceId, 'updated_at', 5);
@@ -65,9 +66,17 @@ export function HomeScreen() {
           accessibilityLabel={`Workspace ${workspace?.name}. Open workspace menu`}
           style={({ pressed }) => [styles.switcher, { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement }]}>
           <Avatar name={workspace?.name} uri={workspace?.logo_url} size={28} square />
-          <ThemedText style={styles.wsName} numberOfLines={1}>
-            {workspace?.name}
-          </ThemedText>
+          <View style={styles.wsText}>
+            <ThemedText style={styles.wsName} numberOfLines={1}>
+              {workspace?.name}
+            </ThemedText>
+            {role ? (
+              <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
+                {ROLE[role].label}
+                {memberships.length > 1 ? ` · ${memberships.length} workspaces` : ''}
+              </ThemedText>
+            ) : null}
+          </View>
           <Icon name="chevron-down" size={14} tone="textSecondary" />
         </Pressable>
         <IconButton icon="bell" label="Notifications" badge={unread} onPress={() => router.push('/notifications')} filled />
@@ -90,6 +99,18 @@ export function HomeScreen() {
           {firstName(name)}
         </ThemedText>
       </Animated.View>
+
+      {role === 'member' ? (
+        <Pressable
+          onPress={() => (memberships.length > 1 ? router.push('/workspaces') : undefined)}
+          style={[styles.roleNote, { backgroundColor: theme.neutralSoft }]}>
+          <Icon name="eye" size={14} tone="neutral" />
+          <ThemedText type="small" style={[styles.roleNoteText, { color: theme.neutral }]}>
+            You’re a member here, so you see tickets you created or are assigned to.
+            {memberships.length > 1 ? ' Tap to see all your workspaces.' : ''}
+          </ThemedText>
+        </Pressable>
+      ) : null}
 
       {/* Big primary action */}
       <Pressable
@@ -274,7 +295,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Spacing.two, gap: Spacing.three },
   switcher: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 6, paddingRight: 14, height: 44, borderRadius: Radius.pill, flexShrink: 1 },
-  wsName: { fontSize: 15, fontWeight: '700', flexShrink: 1 },
+  wsText: { flexShrink: 1 },
+  wsName: { fontSize: 15, lineHeight: 19, fontWeight: '700' },
+  roleNote: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: Radius.md, marginBottom: Spacing.three },
+  roleNoteText: { flex: 1, fontWeight: '500' },
   banner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: Radius.md, marginTop: Spacing.three },
   hero: { marginTop: Spacing.four, marginBottom: Spacing.four },
   greeting: { fontSize: 20, lineHeight: 26, fontWeight: '500' },

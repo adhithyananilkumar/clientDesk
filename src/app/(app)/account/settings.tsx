@@ -48,7 +48,7 @@ export default function AccountSettings() {
       />
       <Button title="Update email" variant="secondary" onPress={changeEmail} loading={busy} style={styles.gap} />
 
-      <SectionHeader title="Your workspaces" action="+ New" onAction={() => router.push('/workspace/new')} />
+      <SectionHeader title="Your workspaces" action="Manage" onAction={() => router.push('/workspaces')} />
       <ListGroup>
         {memberships.map((m, i) => (
           <ListRow

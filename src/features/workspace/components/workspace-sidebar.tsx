@@ -11,6 +11,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useUnreadCount } from '@/features/notifications/api';
 import { useTheme } from '@/hooks/use-theme';
 import { useUiStore } from '@/stores/workspace-store';
+import { toast } from '@/stores/toast-store';
 import { displayName } from '@/utils/format';
 
 import { useMyInvitations, useMyProfile, useWorkspace } from '../api';
@@ -83,7 +84,8 @@ export function WorkspaceSidebar() {
                     {workspace?.name}
                   </ThemedText>
                   <ThemedText type="caption" themeColor="textSecondary">
-                    Current workspace
+                    {role ? `${role === 'owner' ? 'You own this workspace' : `You’re ${role === 'admin' ? 'an admin' : 'a member'} here`}` : 'Current workspace'}
+                    {memberships.length > 1 ? ` · ${memberships.length} workspaces` : ''}
                   </ThemedText>
                 </View>
                 <Icon name={switching ? 'chevron-up' : 'chevron-down'} size={16} tone="textSecondary" />
@@ -91,32 +93,54 @@ export function WorkspaceSidebar() {
 
               {switching ? (
                 <Animated.View entering={FadeIn.duration(160)} style={[styles.switcher, { borderColor: theme.border }]}>
-                  {memberships.map((m) => {
-                    const active = m.workspace.id === workspace?.id;
-                    return (
-                      <Pressable
-                        key={m.workspace.id}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        onPress={() => {
-                          switchTo(m.workspace.id);
-                          close();
-                          router.replace('/');
-                        }}
-                        style={({ pressed }) => [styles.switchRow, pressed && { backgroundColor: theme.backgroundElement }]}>
-                        <Avatar name={m.workspace.name} uri={m.workspace.logo_url} size={28} square />
-                        <View style={styles.flex}>
-                          <ThemedText style={styles.switchName} numberOfLines={1}>
-                            {m.workspace.name}
-                          </ThemedText>
-                          <ThemedText type="caption" themeColor="textSecondary">
-                            {ROLE[m.role].label}
-                          </ThemedText>
-                        </View>
-                        {active ? <Icon name="check" size={16} /> : null}
-                      </Pressable>
-                    );
-                  })}
+                  {(
+                    [
+                      { label: 'OWNED BY YOU', items: memberships.filter((m) => m.role === 'owner') },
+                      { label: 'MEMBER OF', items: memberships.filter((m) => m.role !== 'owner') },
+                    ] as const
+                  ).map((group) =>
+                    group.items.length ? (
+                      <View key={group.label}>
+                        <ThemedText type="caption" themeColor="textTertiary" style={styles.groupLabel}>
+                          {group.label}
+                        </ThemedText>
+                        {group.items.map((m) => {
+                          const active = m.workspace.id === workspace?.id;
+                          return (
+                            <Pressable
+                              key={m.workspace.id}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: active }}
+                              accessibilityLabel={`${m.workspace.name}, ${ROLE[m.role].label}`}
+                              onPress={() => {
+                                if (!active) {
+                                  switchTo(m.workspace.id);
+                                  toast.show(`Switched to ${m.workspace.name} · ${ROLE[m.role].label}`);
+                                }
+                                close();
+                                router.replace('/');
+                              }}
+                              style={({ pressed }) => [styles.switchRow, pressed && { backgroundColor: theme.backgroundElement }]}>
+                              <Avatar name={m.workspace.name} uri={m.workspace.logo_url} size={28} square />
+                              <ThemedText style={[styles.switchName, styles.flex]} numberOfLines={1}>
+                                {m.workspace.name}
+                              </ThemedText>
+                              {active ? <Icon name="check" size={16} /> : <Pill label={ROLE[m.role].label} tone={ROLE[m.role].tone} small />}
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    ) : null,
+                  )}
+                  <Pressable
+                    onPress={() => go('/workspaces')}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [styles.switchRow, pressed && { backgroundColor: theme.backgroundElement }]}>
+                    <View style={[styles.plus, styles.solid, { backgroundColor: theme.backgroundElement }]}>
+                      <Icon name="organization" size={14} />
+                    </View>
+                    <ThemedText style={styles.switchName}>All workspaces</ThemedText>
+                  </Pressable>
                   <Pressable
                     onPress={() => go('/workspace/new')}
                     accessibilityRole="button"
@@ -204,6 +228,8 @@ const styles = StyleSheet.create({
   switcher: { marginTop: Spacing.two, borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.lg, overflow: 'hidden', paddingVertical: 4 },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10 },
   switchName: { fontSize: 15, fontWeight: '600' },
+  groupLabel: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 2, letterSpacing: 1 },
+  solid: { borderWidth: 0 },
   plus: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   sectionLabel: { marginTop: Spacing.four, marginBottom: Spacing.one, paddingHorizontal: 12, letterSpacing: 1 },
   nav: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 48, paddingHorizontal: 12, borderRadius: Radius.md },

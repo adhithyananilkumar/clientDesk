@@ -1,4 +1,13 @@
-import { dehydrate, hydrate, onlineManager, QueryClient, type DehydratedState, type Query } from '@tanstack/react-query';
+import {
+  dehydrate,
+  hydrate,
+  MutationCache,
+  onlineManager,
+  QueryCache,
+  QueryClient,
+  type DehydratedState,
+  type Query,
+} from '@tanstack/react-query';
 import * as Network from 'expo-network';
 import { Platform } from 'react-native';
 
@@ -8,7 +17,31 @@ const CACHE_KEY = 'query-cache.v1';
 /** Keep cached screens readable offline for a week. */
 const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
+/** Registered by the auth provider: refresh the session or sign out. */
+let onAuthFailure: (() => Promise<void>) | null = null;
+let handlingAuthFailure = false;
+
+export function setAuthFailureHandler(handler: (() => Promise<void>) | null) {
+  onAuthFailure = handler;
+}
+
+function isAuthError(error: unknown) {
+  const e = error as { code?: string; status?: number; message?: string };
+  const message = (e?.message ?? '').toLowerCase();
+  return e?.status === 401 || e?.code === 'PGRST301' || e?.code === 'PGRST303' || message.includes('jwt expired') || message.includes('invalid jwt');
+}
+
+function handleError(error: unknown) {
+  if (!isAuthError(error) || !onAuthFailure || handlingAuthFailure) return;
+  handlingAuthFailure = true;
+  onAuthFailure().finally(() => {
+    handlingAuthFailure = false;
+  });
+}
+
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: handleError }),
+  mutationCache: new MutationCache({ onError: handleError }),
   defaultOptions: {
     queries: {
       staleTime: 30_000,
