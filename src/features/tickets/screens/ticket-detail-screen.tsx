@@ -64,6 +64,18 @@ export function TicketDetailScreen({ id }: { id: string }) {
       </Page>
     );
   }
+  if (!ticket.data && ticket.isError) {
+    return (
+      <Page back>
+        <EmptyState
+          icon="alert"
+          title="Couldn’t load this ticket"
+          message={errorMessage(ticket.error)}
+          action={<Button title="Try again" variant="secondary" icon="sync" onPress={() => void ticket.refetch()} />}
+        />
+      </Page>
+    );
+  }
   if (!ticket.data) {
     return (
       <Page back>
@@ -119,7 +131,9 @@ function TicketDetail({
   const overdue = isOverdue(ticket.due_at, ticket.status);
 
   const picker = useAttachmentPicker(0, (files) =>
-    upload.mutate(files, {
+    ticket.pending || !online
+      ? toast.error('Attachments need a connection and a synced ticket. Try again once you’re online.')
+      : upload.mutate(files, {
       onSuccess: (failures) => (failures.length ? toast.error(failures[0]) : toast.success(files.length > 1 ? `${files.length} files attached` : 'File attached')),
       onError: (e) => toast.error(errorMessage(e)),
     }),
@@ -127,8 +141,13 @@ function TicketDetail({
 
   const change = (patch: TicketPatch, message?: string) => {
     Haptics.selectionAsync().catch(() => undefined);
+    // Joined profile/category for the optimistic copy, so offline changes look right immediately.
+    const display = {
+      ...('assigned_to' in patch ? { assignee: members.find((m) => m.user_id === patch.assigned_to)?.profile ?? null } : {}),
+      ...('category_id' in patch ? { category: categories.find((c) => c.id === patch.category_id) ?? null } : {}),
+    };
     update.mutate(
-      { ticket, patch },
+      { ticket, patch, display },
       {
         onSuccess: (r) => (r.queued ? toast.show('Saved offline. It will sync when you’re back online.') : message ? toast.success(message) : undefined),
         onError: (e) => toast.error(errorMessage(e)),

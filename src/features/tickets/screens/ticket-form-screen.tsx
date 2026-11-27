@@ -103,19 +103,26 @@ function TicketForm({ ticket }: { ticket?: Ticket }) {
       assigned_to: canAssign ? v.assigned_to : (ticket?.assigned_to ?? null),
       due_at: v.due_at,
     };
+    // Shown on the optimistic row until the server's copy arrives.
+    const display = {
+      assignee: members.find((m) => m.user_id === payload.assigned_to)?.profile ?? null,
+      category: categories.find((c) => c.id === payload.category_id) ?? null,
+    };
     try {
       if (ticket) {
         const patch = Object.fromEntries(
           Object.entries(payload).filter(([k, val]) => ticket[k as keyof Ticket] !== val),
         );
         if (!canAssign) delete (patch as Record<string, unknown>).assigned_to;
-        if (Object.keys(patch).length) await update.mutateAsync({ ticket, patch });
-        toast.success('Ticket updated');
+        const result = Object.keys(patch).length ? await update.mutateAsync({ ticket, patch, display }) : null;
+        if (result?.queued) toast.show('Saved offline. It will sync when you’re back online.');
+        else toast.success('Ticket updated');
         router.back();
       } else {
-        const { ticket: created, failures } = await create.mutateAsync({ values: payload, files });
+        const { ticket: created, failures, queued } = await create.mutateAsync({ values: payload, files, display });
         kv.remove(draftKey);
-        if (failures.length) toast.error(failures[0]);
+        if (queued) toast.show('You’re offline. The ticket is saved and will sync automatically.');
+        else if (failures.length) toast.error(failures[0]);
         else toast.success(`${ticketKey(workspace?.ticket_prefix, created.ticket_number)} created`);
         router.replace({ pathname: '/ticket/[id]', params: { id: created.id } });
       }

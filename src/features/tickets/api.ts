@@ -12,12 +12,14 @@ import { File } from 'expo-file-system';
 import { UPLOAD } from '@/constants/tickets';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/services/supabase';
-import { enqueue } from '@/sync/outbox';
+import { enqueue, flushOutbox, patchPendingTicket, pendingTicket } from '@/sync/outbox';
 import type {
   Activity,
   Attachment,
+  Category,
   Comment,
   Member,
+  Profile,
   Ticket,
   TicketPriority,
   TicketStats,
@@ -247,10 +249,21 @@ export function useTicket(workspaceId: string | null, id: string) {
     queryFn: async () => {
       const { data, error } = await supabase.from('tickets').select(TICKET_FIELDS).eq('id', id).maybeSingle();
       if (error) throw error;
-      return (data as unknown as Ticket | null) ?? null;
+      // Created offline and not synced yet: keep showing the local copy.
+      return (data as unknown as Ticket | null) ?? pendingTicket(id) ?? null;
     },
     // Opening from a list shows the row instantly while the detail loads.
-    placeholderData: () => findInLists(qc, workspaceId, id),
+    placeholderData: () => findInLists(qc, workspaceId, id) ?? pendingTicket(id),
+  });
+}
+
+/** Write a ticket into every cached list/detail that holds it. */
+function patchCachedTicket(qc: ReturnType<typeof useQueryClient>, ws: string | null, id: string, patch: Partial<Ticket>) {
+  qc.setQueryData<Ticket | null>(ticketKeys.detail(ws, id), (t) => (t ? { ...t, ...patch } : t));
+  qc.setQueriesData<InfiniteData<Ticket[]> | Ticket[]>({ queryKey: ticketKeys.lists(ws) }, (data) => {
+    if (!data) return data;
+    const apply = (rows: Ticket[]) => rows.map((t) => (t.id === id ? { ...t, ...patch } : t));
+    return 'pages' in data ? { ...data, pages: data.pages.map(apply) } : Array.isArray(data) ? apply(data) : data;
   });
 }
 
@@ -384,11 +397,39 @@ export type TicketInput = {
   due_at: string | null;
 };
 
+/** Profiles/category for the optimistic row shown while a ticket waits to sync. */
+export type TicketDisplay = { assignee?: Profile | null; category?: Pick<Category, 'id' | 'name' | 'color'> | null };
+
+/** Online: insert now. Offline: queue it, show it immediately, sync later (no attachments). */
 export function useCreateTicket(workspaceId: string | null) {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ values, files }: { values: TicketInput; files: PickedFile[] }) => {
+    networkMode: 'always',
+    mutationFn: async ({ values, files, display = {} }: { values: TicketInput; files: PickedFile[]; display?: TicketDisplay }) => {
       const id = Crypto.randomUUID();
+      if (!onlineManager.isOnline()) {
+        if (files.length) throw new Error('Attachments need a connection. Remove them or try again online.');
+        const now = new Date().toISOString();
+        const optimistic: Ticket = {
+          id,
+          workspace_id: workspaceId!,
+          ticket_number: 0,
+          ...values,
+          status: 'open',
+          created_by: user!.id,
+          created_at: now,
+          updated_at: now,
+          resolved_at: null,
+          creator: { id: user!.id, full_name: (user!.user_metadata?.full_name as string) ?? '', email: user!.email ?? '', avatar_url: null },
+          assignee: display.assignee ?? null,
+          category: display.category ?? null,
+          pending: true,
+        };
+        enqueue(id, { kind: 'ticket.create', workspaceId: workspaceId!, payload: { values: { id, workspace_id: workspaceId!, ...values }, optimistic } });
+        qc.setQueryData(ticketKeys.detail(workspaceId, id), optimistic);
+        return { ticket: optimistic, failures: [] as string[], queued: true };
+      }
       const { data, error } = await supabase
         .from('tickets')
         .insert({ id, workspace_id: workspaceId, ...values })
@@ -396,9 +437,11 @@ export function useCreateTicket(workspaceId: string | null) {
         .single();
       if (error) throw error;
       const failures = files.length ? await uploadAttachments(workspaceId!, id, files) : [];
-      return { ticket: data as unknown as Ticket, failures };
+      return { ticket: data as unknown as Ticket, failures, queued: false };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ws', workspaceId] }),
+    onSuccess: (result) => {
+      if (!result.queued) qc.invalidateQueries({ queryKey: ['ws', workspaceId] });
+    },
   });
 }
 
@@ -409,7 +452,12 @@ export function useUpdateTicket(workspaceId: string | null) {
   const qc = useQueryClient();
   return useMutation({
     networkMode: 'always',
-    mutationFn: async ({ ticket, patch }: { ticket: Ticket; patch: TicketPatch }) => {
+    mutationFn: async ({ ticket, patch, display = {} }: { ticket: Ticket; patch: TicketPatch; display?: TicketDisplay }) => {
+      // Still waiting to be created: fold the edit into the queued insert.
+      if (patchPendingTicket(ticket.id, patch, display)) {
+        flushOutbox();
+        return { queued: true };
+      }
       if (!onlineManager.isOnline()) {
         enqueue(Crypto.randomUUID(), {
           kind: 'ticket.update',
@@ -422,15 +470,17 @@ export function useUpdateTicket(workspaceId: string | null) {
       if (error) throw error;
       return { queued: false };
     },
-    onMutate: async ({ ticket, patch }) => {
+    onMutate: async ({ ticket, patch, display = {} }) => {
       const key = ticketKeys.detail(workspaceId, ticket.id);
       await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<Ticket | null>(key);
-      qc.setQueryData<Ticket | null>(key, (t) => (t ? { ...t, ...patch } : t));
+      const previous = qc.getQueryData<Ticket | null>(key) ?? ticket;
+      if (!qc.getQueryData(key)) qc.setQueryData(key, ticket);
+      // Detail and every list update at once, online or off.
+      patchCachedTicket(qc, workspaceId, ticket.id, { ...patch, ...display });
       return { previous };
     },
     onError: (_e, { ticket }, context) => {
-      qc.setQueryData(ticketKeys.detail(workspaceId, ticket.id), context?.previous);
+      if (context?.previous) patchCachedTicket(qc, workspaceId, ticket.id, context.previous);
     },
     onSettled: (result, _e, { ticket }) => {
       if (result?.queued) return;
@@ -461,8 +511,11 @@ export function useAddComment(workspaceId: string | null, ticketId: string) {
     mutationFn: async ({ body, isInternal, files }: { body: string; isInternal: boolean; files: PickedFile[] }) => {
       const id = Crypto.randomUUID();
       const payload = { id, ticket_id: ticketId, body, is_internal: isInternal };
-      if (!onlineManager.isOnline()) {
+      // Offline, or the ticket itself hasn't synced yet: queue behind it.
+      if (!onlineManager.isOnline() || pendingTicket(ticketId)) {
+        if (files.length) throw new Error('Attachments can be added once this ticket has synced.');
         enqueue(id, { kind: 'comment.create', workspaceId: workspaceId!, payload });
+        if (onlineManager.isOnline()) flushOutbox();
         // Optimistic, marked pending until the outbox replays it.
         qc.setQueryData<Comment[]>(ticketKeys.comments(workspaceId, ticketId), (list) => [
           ...(list ?? []),

@@ -97,6 +97,8 @@ export type Ticket = {
   creator: Profile | null;
   assignee: Profile | null;
   category: Pick<Category, 'id' | 'name' | 'color'> | null;
+  /** Created offline; waiting in the outbox to reach the server. */
+  pending?: boolean;
 };
 
 export type Comment = {

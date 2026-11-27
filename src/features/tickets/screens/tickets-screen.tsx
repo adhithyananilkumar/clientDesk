@@ -21,7 +21,9 @@ import { TopBarActions } from '@/features/workspace/components/top-bar';
 import { WorkspaceSwitcher } from '@/features/workspace/components/workspace-switcher';
 import { isAdmin } from '@/features/workspace/permissions';
 import { useTheme } from '@/hooks/use-theme';
+import { pendingTickets, useSyncStore } from '@/sync/outbox';
 import type { Ticket } from '@/types/models';
+import { errorMessage } from '@/utils/format';
 
 import { activeFilterCount, DEFAULT_FILTERS, useTickets, type TicketFilters, type TicketScope, type TicketSort } from '../api';
 import { FilterSheet } from '../components/filter-sheet';
@@ -78,7 +80,17 @@ export function TicketsScreen() {
 
   const effective = useMemo(() => ({ ...filters, q }), [filters, q]);
   const tickets = useTickets(workspaceId, effective, members);
-  const rows = useMemo(() => tickets.data?.pages.flat() ?? [], [tickets.data]);
+  const outboxSize = useSyncStore((s) => s.pending);
+  const rows = useMemo(() => {
+    const server = tickets.data?.pages.flat() ?? [];
+    // Tickets created offline show at the top until they sync, in views that would include a new open ticket.
+    const onlyStatusFilter = activeFilterCount(filters) === (filters.status.length ? 1 : 0);
+    const statusFits = !filters.status.length || filters.status.includes('open');
+    const showLocal = !q && (filters.scope === 'all' || filters.scope === 'created') && onlyStatusFilter && statusFits;
+    if (!showLocal) return server;
+    const local = outboxSize ? pendingTickets(workspaceId).filter((t) => !server.some((s) => s.id === t.id)) : [];
+    return local.length ? [...local, ...server] : server;
+  }, [tickets.data, outboxSize, workspaceId, q, filters]);
   const count = activeFilterCount(filters);
   const admin = isAdmin(role);
 
@@ -130,6 +142,13 @@ export function TicketsScreen() {
         </View>
       ))}
     </View>
+  ) : tickets.isError ? (
+    <EmptyState
+      icon="alert"
+      title="Couldn’t load tickets"
+      message={errorMessage(tickets.error)}
+      action={<Button title="Try again" variant="secondary" icon="sync" onPress={() => void tickets.refetch()} />}
+    />
   ) : (
     <EmptyState
       icon={q || count ? 'search' : 'issue-opened'}
@@ -167,7 +186,11 @@ export function TicketsScreen() {
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={tickets.isRefetching && !tickets.isFetchingNextPage} onRefresh={() => void tickets.refetch()} tintColor={theme.textSecondary} />}
         ListFooterComponent={
-          tickets.isFetchingNextPage ? (
+          tickets.isFetchNextPageError ? (
+            <View style={styles.more}>
+              <Button title="Couldn’t load more · Retry" variant="ghost" size="sm" onPress={() => void tickets.fetchNextPage()} />
+            </View>
+          ) : tickets.isFetchingNextPage ? (
             <ThemedText type="small" themeColor="textSecondary" style={styles.more}>
               Loading more…
             </ThemedText>

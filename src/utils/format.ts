@@ -1,6 +1,8 @@
 /** Display helpers: ticket keys, names, dates and sizes. */
 
 export function ticketKey(prefix: string | undefined, number: number) {
+  // Numbers are assigned by the server; offline-created tickets don't have one yet.
+  if (!number) return 'Waiting to sync';
   return `${prefix || 'CD'}-${String(number).padStart(5, '0')}`;
 }
 

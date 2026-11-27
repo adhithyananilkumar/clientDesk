@@ -102,6 +102,15 @@ export const outboxStore = {
     if (!db) return [...memOutbox];
     return db.getAllSync<OutboxRow>('SELECT * FROM outbox ORDER BY created_at ASC');
   },
+  /** Replace a queued row's payload (e.g. fold an edit into a not-yet-synced create). */
+  update(id: string, payload: unknown) {
+    const json = JSON.stringify(payload);
+    if (!db) {
+      memOutbox = memOutbox.map((r) => (r.id === id ? { ...r, payload: json } : r));
+      return;
+    }
+    db.runSync('UPDATE outbox SET payload = ? WHERE id = ?', json, id);
+  },
   remove(id: string) {
     if (!db) {
       memOutbox = memOutbox.filter((r) => r.id !== id);

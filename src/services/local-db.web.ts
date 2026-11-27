@@ -50,6 +50,9 @@ export const outboxStore = {
     write(rows);
   },
   all: read,
+  update(id: string, payload: unknown) {
+    write(read().map((r) => (r.id === id ? { ...r, payload: JSON.stringify(payload) } : r)));
+  },
   remove(id: string) {
     write(read().filter((r) => r.id !== id));
   },
