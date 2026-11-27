@@ -124,7 +124,7 @@ export function PendingFiles({ files, onRemove }: { files: PickedFile[]; onRemov
               {fileSize(f.size)}
             </ThemedText>
           </View>
-          <Pressable onPress={() => onRemove(i)} hitSlop={10} accessibilityLabel={`Remove ${f.name}`}>
+          <Pressable onPress={() => onRemove(i)} hitSlop={15} accessibilityRole="button" accessibilityLabel={`Remove ${f.name}`}>
             <Icon name="x" size={14} tone="textSecondary" />
           </Pressable>
         </View>

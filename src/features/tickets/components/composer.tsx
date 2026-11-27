@@ -87,7 +87,7 @@ export function Composer({ workspaceId, ticketId, allowInternal }: Props) {
           styles.box,
           { backgroundColor: internal ? theme.warningSoft : theme.backgroundElement, borderColor: internal ? theme.warning + '66' : 'transparent' },
         ]}>
-        <Pressable onPress={picker.open} hitSlop={8} accessibilityLabel="Attach files" style={styles.attach}>
+        <Pressable onPress={picker.open} hitSlop={13} accessibilityRole="button" accessibilityLabel="Attach files" style={styles.attach}>
           <Icon name="paperclip" size={18} tone="textSecondary" />
         </Pressable>
         <TextInput

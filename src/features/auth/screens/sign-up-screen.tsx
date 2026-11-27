@@ -126,6 +126,21 @@ export function SignUpScreen() {
         </ThemedText>
       ) : null}
       <Button title="Create account" onPress={submit} loading={submitting} />
+      <ThemedText type="caption" themeColor="textSecondary" style={styles.legal}>
+        By creating an account you agree to the{' '}
+        <Link href="/terms" accessibilityRole="link">
+          <ThemedText type="caption" style={styles.link}>
+            Terms of service
+          </ThemedText>
+        </Link>{' '}
+        and{' '}
+        <Link href="/privacy" accessibilityRole="link">
+          <ThemedText type="caption" style={styles.link}>
+            Privacy policy
+          </ThemedText>
+        </Link>
+        .
+      </ThemedText>
     </AuthLayout>
   );
 }
@@ -133,4 +148,5 @@ export function SignUpScreen() {
 const styles = StyleSheet.create({
   error: { color: DangerColor },
   link: { fontWeight: '700' },
+  legal: { textAlign: 'center' },
 });

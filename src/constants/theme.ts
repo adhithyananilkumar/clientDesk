@@ -16,7 +16,7 @@ export const Colors = {
   light: {
     text: Brand.ink,
     textSecondary: '#5E5E5E',
-    textTertiary: '#8F8F8F',
+    textTertiary: '#6B6B6B', // 4.8:1 on backgroundElement (WCAG AA)
     background: Brand.white,
     backgroundElement: '#F3F3F3',
     backgroundSelected: '#E6E6E6',
@@ -26,7 +26,7 @@ export const Colors = {
     overlay: 'rgba(0,0,0,0.45)',
     link: '#0969DA',
 
-    success: '#1F883D',
+    success: '#1A7F37', // 4.6:1 on successSoft
     successSoft: '#DAFBE1',
     warning: '#9A6700',
     warningSoft: '#FFF8C5',
@@ -44,7 +44,7 @@ export const Colors = {
   dark: {
     text: Brand.white,
     textSecondary: '#A8A8A8',
-    textTertiary: '#727272',
+    textTertiary: '#8C8C8C', // 5.3:1 on backgroundElement (WCAG AA)
     background: Brand.ink,
     backgroundElement: '#171717',
     backgroundSelected: '#242424',

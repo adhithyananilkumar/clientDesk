@@ -15,7 +15,10 @@ import { passwordSchema } from '@/validation';
 export default function Security() {
   const theme = useTheme();
   const { recovery } = useLocalSearchParams<{ recovery?: string }>();
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
+  const [confirming, setConfirming] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [values, setValues] = useState({ password: '', confirm: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -96,6 +99,57 @@ export default function Security() {
           <ThemedText type="caption" themeColor="textTertiary" style={styles.note}>
             Signed in as {user?.email}. Last sign-in {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'unknown'}.
           </ThemedText>
+
+          <SectionHeader title="Delete account" />
+          {confirming ? (
+            <View style={[styles.danger, { borderColor: theme.danger }]}>
+              <ThemedText type="small">
+                This permanently deletes your profile, your comments and files, and any workspace where you’re the only member. Tickets you
+                created stay with your team without your name. This can’t be undone.
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                If you own a workspace with other people in it, transfer ownership first.
+              </ThemedText>
+              <FormField
+                label="Type DELETE to confirm"
+                value={confirmText}
+                onChangeText={setConfirmText}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+              <View style={styles.dangerActions}>
+                <Button title="Cancel" variant="secondary" onPress={() => {
+                  setConfirming(false);
+                  setConfirmText('');
+                }} />
+                <Button
+                  title="Delete my account"
+                  variant="danger"
+                  disabled={confirmText.trim().toUpperCase() !== 'DELETE'}
+                  loading={deleting}
+                  onPress={async () => {
+                    setDeleting(true);
+                    const { error } = await deleteAccount();
+                    setDeleting(false);
+                    if (error) return toast.error(error);
+                    toast.success('Your account has been deleted');
+                  }}
+                />
+              </View>
+            </View>
+          ) : (
+            <ListGroup>
+              <ListRow
+                icon="trash"
+                title="Delete account"
+                subtitle="Permanently remove your account and data"
+                destructive
+                chevron={false}
+                onPress={() => setConfirming(true)}
+                last
+              />
+            </ListGroup>
+          )}
         </>
       )}
     </Page>
@@ -106,4 +160,6 @@ const styles = StyleSheet.create({
   notice: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: Radius.md },
   form: { gap: Spacing.four - 4 },
   note: { marginTop: Spacing.two },
+  danger: { gap: Spacing.three, padding: Spacing.three, borderRadius: Radius.md, borderWidth: 1 },
+  dangerActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.two },
 });

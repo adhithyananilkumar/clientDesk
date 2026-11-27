@@ -26,6 +26,8 @@ type AuthContextValue = {
   sendPasswordReset: (email: string) => Promise<AuthResult>;
   resendConfirmation: (email: string) => Promise<AuthResult>;
   signOut: (options?: { everywhere?: boolean }) => Promise<void>;
+  /** Permanently deletes the account on the server, then clears this device. */
+  deleteAccount: () => Promise<AuthResult>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -203,6 +205,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearLocalData();
   }, []);
 
+  const deleteAccount = useCallback<AuthContextValue['deleteAccount']>(async () => {
+    const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
+    if (error) {
+      // The function answers with { error } meant for the person (e.g. transfer ownership first).
+      let message = 'Couldn’t delete your account. Check your connection and try again.';
+      try {
+        const body = await (error as { context?: Response }).context?.json();
+        if (body?.error) message = body.error;
+      } catch {
+        // Keep the generic message.
+      }
+      return { error: message };
+    }
+    // The server already removed the user and its push tokens; just forget it here.
+    manualSignOut = true;
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    clearLocalData();
+    return { error: null };
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -214,8 +236,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendPasswordReset,
       resendConfirmation,
       signOut,
+      deleteAccount,
     }),
-    [session, isLoading, signIn, signUp, signInWithGoogle, sendPasswordReset, resendConfirmation, signOut],
+    [session, isLoading, signIn, signUp, signInWithGoogle, sendPasswordReset, resendConfirmation, signOut, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

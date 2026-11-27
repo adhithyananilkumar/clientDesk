@@ -38,7 +38,7 @@ export type Workspace = {
   enabled_priorities: TicketPriority[];
   member_visibility: MemberVisibility;
   default_assignee_id: string | null;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -88,7 +88,7 @@ export type Ticket = {
   status: TicketStatus;
   priority: TicketPriority;
   category_id: string | null;
-  created_by: string;
+  created_by: string | null;
   assigned_to: string | null;
   due_at: string | null;
   created_at: string;

@@ -84,6 +84,8 @@ export function HomeScreen() {
       {role === 'member' ? (
         <Pressable
           onPress={() => (memberships.length > 1 ? router.push('/workspaces') : undefined)}
+          disabled={memberships.length <= 1}
+          accessibilityRole={memberships.length > 1 ? 'button' : 'text'}
           style={[styles.roleNote, { backgroundColor: theme.neutralSoft }]}>
           <Icon name="eye" size={14} tone="neutral" />
           <ThemedText type="small" style={[styles.roleNoteText, { color: theme.neutral }]}>
@@ -191,6 +193,8 @@ export function HomeScreen() {
               <Pressable
                 key={a.id}
                 onPress={() => a.ticket && router.push({ pathname: '/ticket/[id]', params: { id: a.ticket.id } })}
+                accessibilityRole="button"
+                accessibilityHint="Opens the ticket"
                 style={[styles.feedRow, i > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
                 <View style={[styles.feedIcon, { backgroundColor: theme[`${tone}Soft` as ThemeColor] ?? theme.backgroundElement }]}>
                   <Icon name={icon} size={12} color={theme[tone]} />

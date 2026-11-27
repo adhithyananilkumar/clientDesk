@@ -42,6 +42,8 @@ function RootNavigator() {
           {/* Deep links that work in either state. */}
           <Stack.Screen name="auth/callback" />
           <Stack.Screen name="invite" />
+          <Stack.Screen name="privacy" options={{ animation: 'default' }} />
+          <Stack.Screen name="terms" options={{ animation: 'default' }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       )}

@@ -54,7 +54,7 @@ export function WorkspaceSwitcher() {
 
       <Modal visible={open} transparent animationType="none" onRequestClose={close} statusBarTranslucent>
         <Animated.View entering={FadeIn.duration(120)} exiting={FadeOut.duration(120)} style={StyleSheet.absoluteFill}>
-          <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: theme.overlay }]} onPress={close} accessibilityLabel="Close workspace menu" />
+          <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: theme.overlay }]} onPress={close} accessibilityRole="button" accessibilityLabel="Close workspace menu" />
         </Animated.View>
         <Animated.View
           entering={FadeIn.duration(160).easing(Easing.out(Easing.cubic))}

@@ -70,7 +70,7 @@ export function ProfileDrawer() {
       {open ? (
         <View style={styles.root}>
           <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(180)} style={StyleSheet.absoluteFill}>
-            <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: theme.overlay }]} onPress={close} accessibilityLabel="Close profile" />
+            <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: theme.overlay }]} onPress={close} accessibilityRole="button" accessibilityLabel="Close profile" />
           </Animated.View>
           <Animated.View
             entering={SlideInRight.duration(280).easing(Easing.out(Easing.cubic))}
@@ -90,6 +90,8 @@ export function ProfileDrawer() {
               <Item icon="person" label="My profile" onPress={() => go('/account/profile')} />
               <Item icon="gear" label="Settings" onPress={() => go('/account/settings')} />
               <Item icon="question" label="Help & support" onPress={() => go('/account/help')} />
+              <Item icon="shield-lock" label="Privacy policy" onPress={() => go('/privacy')} />
+              <Item icon="law" label="Terms of service" onPress={() => go('/terms')} />
             </ScrollView>
 
             <View style={styles.appearance}>

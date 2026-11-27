@@ -59,6 +59,8 @@ export function Button({
       accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}
       onPress={onPress}
+      // Small buttons still get a 44pt touch target.
+      hitSlop={size === 'sm' ? { top: 4, bottom: 4 } : undefined}
       style={({ pressed }) => [
         styles.base,
         { minHeight: HEIGHT[size], paddingHorizontal: size === 'sm' ? Spacing.three : Spacing.four },

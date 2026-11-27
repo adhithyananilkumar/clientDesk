@@ -262,7 +262,7 @@ function TicketDetail({
           {ticket.description || 'No description.'}
         </ThemedText>
         {longDescription ? (
-          <Pressable onPress={() => setExpanded((e) => !e)} hitSlop={8}>
+          <Pressable onPress={() => setExpanded((e) => !e)} hitSlop={12} accessibilityRole="button" accessibilityState={{ expanded }}>
             <ThemedText type="small" style={styles.more}>
               {expanded ? 'Show less' : 'Show more'}
             </ThemedText>

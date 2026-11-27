@@ -62,7 +62,7 @@ export function CommentItem({ comment, attachments, mine, workspaceId, canDelete
           <View style={styles.flex} />
           {internal ? <Pill label="Internal" icon="lock" tone="warning" small /> : null}
           {mine && !comment.pending ? (
-            <Pressable onPress={() => setMenu(true)} hitSlop={10} accessibilityLabel="Comment options">
+            <Pressable onPress={() => setMenu(true)} hitSlop={14} accessibilityRole="button" accessibilityLabel="Comment options">
               <Icon name="kebab-horizontal" size={16} tone="textSecondary" />
             </Pressable>
           ) : null}

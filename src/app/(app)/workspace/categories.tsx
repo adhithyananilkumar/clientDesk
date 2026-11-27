@@ -57,7 +57,7 @@ export default function Categories() {
               onPress={manage ? () => setDraft({ id: c.id, name: c.name, color: c.color }) : undefined}
               right={
                 manage ? (
-                  <Pressable onPress={() => confirmDelete(c)} hitSlop={10} accessibilityLabel={`Delete ${c.name}`}>
+                  <Pressable onPress={() => confirmDelete(c)} hitSlop={14} accessibilityRole="button" accessibilityLabel={`Delete ${c.name}`}>
                     <Icon name="trash" size={16} tone="textTertiary" />
                   </Pressable>
                 ) : undefined

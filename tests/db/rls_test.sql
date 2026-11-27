@@ -188,5 +188,43 @@ do $$ begin
 end $$;
 
 reset role;
+
+-- Account deletion (run as the service role would, via the Edge Function).
+do $$
+declare
+  c_tickets int;
+begin
+  -- b now owns a workspace that still has members: must transfer first.
+  begin perform public.prepare_account_deletion('00000000-0000-0000-0000-00000000000b');
+        raise exception 'FAIL: owner deleted account without transfer';
+  exception when sqlstate 'P0001' then null; end;
+
+  -- c (member, created tickets) can go; the tickets stay with no creator.
+  select count(*) into c_tickets from public.tickets where created_by = '00000000-0000-0000-0000-00000000000c';
+  perform public.prepare_account_deletion('00000000-0000-0000-0000-00000000000c');
+  delete from auth.users where id = '00000000-0000-0000-0000-00000000000c';
+  if exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000c') then
+    raise exception 'FAIL: profile kept after account deletion';
+  end if;
+  if (select count(*) from public.tickets where created_by is null) < c_tickets then
+    raise exception 'FAIL: deleted user''s tickets were removed';
+  end if;
+
+  -- a created the workspace but no longer owns it: workspace survives, creator cleared.
+  perform public.prepare_account_deletion('00000000-0000-0000-0000-00000000000a');
+  delete from auth.users where id = '00000000-0000-0000-0000-00000000000a';
+  if (select created_by from public.workspaces where id = (select ws from ctx)) is not null then
+    raise exception 'FAIL: workspace creator not cleared';
+  end if;
+
+  -- d owns nothing shared: a solo workspace of theirs is deleted with them.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', true);
+  perform public.create_workspace('Solo', '');
+  perform public.prepare_account_deletion('00000000-0000-0000-0000-00000000000d');
+  if exists (select 1 from public.workspaces where name = 'Solo') then
+    raise exception 'FAIL: solo workspace kept';
+  end if;
+end $$;
+
 select 'ALL RLS CHECKS PASSED' as result;
 rollback;

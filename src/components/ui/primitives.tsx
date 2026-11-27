@@ -232,7 +232,8 @@ export function IconButton({ icon, onPress, label, size = 40, filled, tone, badg
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={badge ? `${label}, ${badge} new` : label}
-      hitSlop={6}
+      // At least a 44pt touch target, whatever the visual size.
+      hitSlop={Math.max(6, Math.ceil((44 - size) / 2))}
       style={({ pressed }) => [
         {
           width: size,
@@ -265,6 +266,8 @@ export function Chip({ label, selected, onPress, icon, count }: ChipProps) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      accessibilityLabel={count ? `${label}, ${count} active` : label}
+      hitSlop={{ top: 4, bottom: 4 }}
       style={({ pressed }) => [
         styles.chip,
         {
@@ -308,6 +311,7 @@ export function SegmentedControl<T extends string>({
             key={segment.value}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            hitSlop={{ top: 4, bottom: 4 }}
             onPress={() => onChange(segment.value)}
             style={[styles.segment, active && { backgroundColor: theme.surface, ...styles.segmentActive }]}>
             <ThemedText

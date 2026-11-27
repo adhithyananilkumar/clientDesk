@@ -175,8 +175,9 @@ export function DueDateSheet({ visible, onClose, value, onSelect }: Base<string 
       <View style={styles.calendar}>
         <View style={styles.monthRow}>
           <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Previous month"
-            hitSlop={10}
+            hitSlop={12}
             onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>
             <Icon name="chevron-left" size={20} />
           </Pressable>
@@ -184,8 +185,9 @@ export function DueDateSheet({ visible, onClose, value, onSelect }: Base<string 
             {month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
           </ThemedText>
           <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Next month"
-            hitSlop={10}
+            hitSlop={12}
             onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>
             <Icon name="chevron-right" size={20} />
           </Pressable>
